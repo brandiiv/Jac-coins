@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>جاك | عملات حصرية</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold: #d4a843; --gold-light: #f0c96a; --gold-dark: #a07828;
+      --bg-dark: #080808; --bg-card: #111111; --text: #f5f0e8;
+      --text-muted: #9a8c7a; --border: rgba(212,168,67,0.2);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Tajawal',sans-serif; background:var(--bg-dark); color:var(--text); overflow-x:hidden; }
+    body::before {
+      content:''; position:fixed; inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events:none; z-index:0; opacity:0.5;
+    }
+
+    /* CART FAB */
+    .cart-fab {
+      position:fixed; top:1.2rem; left:1.2rem; z-index:1000;
+      background:linear-gradient(135deg,var(--gold),var(--gold-dark));
+      color:#000; border:none; border-radius:50px; padding:0.6rem 1.2rem;
+      font-family:'Tajawal',sans-serif; font-size:1rem; font-weight:800;
+      cursor:pointer; display:flex; align-items:center; gap:0.5rem;
+      box-shadow:0 4px 20px rgba(212,168,67,0.4); transition:all 0.25s;
+    }
+    .cart-fab:hover { transform:scale(1.05); }
+    .cart-count {
+      background:#000; color:var(--gold); border-radius:50px;
+      padding:0.1rem 0.5rem; font-size:0.8rem; font-weight:900;
+      min-width:22px; text-align:center; transition:transform 0.2s;
+    }
+    .cart-count.bump { transform:scale(1.4); }
+
+    /* CART OVERLAY & DRAWER */
+    .cart-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1001;
+      opacity:0; pointer-events:none; transition:opacity 0.3s;
+    }
+    .cart-overlay.open { opacity:1; pointer-events:all; }
+    .cart-drawer {
+      position:fixed; top:0; left:0; width:min(380px,100vw); height:100vh;
+      background:#0e0e0e; border-right:1px solid var(--border); z-index:1002;
+      padding:1.5rem; display:flex; flex-direction:column;
+      transform:translateX(-100%); transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+    .cart-drawer.open { transform:translateX(0); }
+    .cart-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid var(--border);
+    }
+    .cart-title { font-size:1.2rem; font-weight:800; color:var(--gold); }
+    .cart-close {
+      background:rgba(255,255,255,0.05); border:1px solid var(--border);
+      color:var(--text); border-radius:8px; padding:0.4rem 0.8rem;
+      cursor:pointer; font-size:1rem; font-family:'Tajawal',sans-serif;
+    }
+    .cart-items { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.8rem; }
+    .cart-empty { text-align:center; color:var(--text-muted); font-size:0.9rem; margin-top:3rem; }
+    .cart-empty-icon { font-size:3rem; margin-bottom:0.5rem; }
+    .cart-item {
+      background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
+      padding:1rem; display:flex; align-items:center; justify-content:space-between; gap:0.8rem;
+      animation:slideIn 0.3s ease;
+    }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+    .cart-item-info { flex:1; }
+    .cart-item-name { font-size:0.95rem; font-weight:700; color:var(--text); }
+    .cart-item-price { font-size:0.85rem; color:var(--gold); margin-top:0.2rem; }
+    .cart-item-remove {
+      background:rgba(255,80,80,0.1); border:1px solid rgba(255,80,80,0.2);
+      color:#ff6b6b; border-radius:8px; padding:0.3rem 0.6rem;
+      cursor:pointer; font-size:0.8rem; font-family:'Tajawal',sans-serif; transition:all 0.2s;
+    }
+    .cart-item-remove:hover { background:rgba(255,80,80,0.2); }
+    .cart-footer { border-top:1px solid var(--border); padding-top:1.2rem; margin-top:1rem; }
+    .cart-total { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+    .cart-total-label { font-size:0.9rem; color:var(--text-muted); }
+    .cart-total-price { font-size:1.3rem; font-weight:900; color:var(--gold); }
+    .cart-usdt {
+      display:flex; align-items:center; justify-content:center; gap:0.6rem; width:100%;
+      background:linear-gradient(135deg,#26A17B,#1a7a5c); color:#fff; font-family:'Tajawal',sans-serif;
+      font-size:1rem; font-weight:800; padding:0.9rem; border-radius:12px; border:none;
+      cursor:pointer; text-decoration:none; transition:all 0.25s;
+      box-shadow:0 4px 20px rgba(38,161,123,0.35);
+    }
+    .cart-usdt:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(38,161,123,0.5); }
+    .cart-usdt.disabled { background:#333; color:#666; cursor:not-allowed; box-shadow:none; pointer-events:none; }
+
+    /* USDT PAYMENT MODAL */
+    .usdt-modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2000;
+      display:none; align-items:center; justify-content:center; padding:1rem;
+      opacity:0; pointer-events:none; transition:opacity 0.3s;
+    }
+    .usdt-modal-overlay.open { display:flex; opacity:1; pointer-events:all; }
+    .usdt-modal {
+      background:#0e0e0e; border:1px solid rgba(38,161,123,0.4); border-radius:24px;
+      padding:2rem; width:100%; max-width:480px; max-height:90vh; overflow-y:auto;
+      transform:scale(0.95) translateY(10px); transition:transform 0.3s;
+      position:relative;
+    }
+    .usdt-modal-overlay.open .usdt-modal { transform:scale(1) translateY(0); }
+    .usdt-modal-close {
+      position:absolute; top:1rem; left:1rem;
+      background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+      color:#fff; border-radius:8px; padding:0.3rem 0.7rem; cursor:pointer;
+      font-family:'Tajawal',sans-serif; font-size:0.9rem;
+    }
+    .usdt-modal-title { text-align:center; font-size:1.3rem; font-weight:800; color:#26A17B; margin-bottom:0.4rem; }
+    .usdt-modal-sub { text-align:center; font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem; }
+    .usdt-order-summary {
+      background:rgba(38,161,123,0.07); border:1px solid rgba(38,161,123,0.2);
+      border-radius:14px; padding:1rem; margin-bottom:1.5rem;
+    }
+    .usdt-order-row { display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.4rem; }
+    .usdt-order-row:last-child { margin-bottom:0; font-weight:800; color:#26A17B; font-size:1rem; }
+    .network-selector { display:flex; gap:0.6rem; margin-bottom:1.2rem; }
+    .network-btn {
+      flex:1; padding:0.75rem 0.5rem; border-radius:12px; border:2px solid rgba(255,255,255,0.1);
+      background:rgba(255,255,255,0.03); color:var(--text-muted); font-family:'Tajawal',sans-serif;
+      font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; text-align:center;
+    }
+    .network-btn.active-trc { border-color:#26A17B; background:rgba(38,161,123,0.12); color:#26A17B; }
+    .network-btn.active-bep { border-color:#F0B90B; background:rgba(240,185,11,0.12); color:#F0B90B; }
+    .network-btn .net-name { font-size:1rem; display:block; margin-bottom:0.2rem; }
+    .network-btn .net-fee { font-size:0.7rem; opacity:0.8; }
+    .usdt-wallet-box {
+      background:rgba(212,168,67,0.07); border:1px solid var(--border);
+      border-radius:14px; padding:1.2rem; margin-bottom:1.5rem; text-align:center;
+    }
+    .usdt-wallet-label { font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem; letter-spacing:1px; text-transform:uppercase; }
+    .usdt-wallet-network {
+      display:inline-flex; align-items:center; gap:0.4rem;
+      background:rgba(38,161,123,0.15); color:#26A17B;
+      font-size:0.75rem; font-weight:700; padding:0.2rem 0.7rem;
+      border-radius:20px; margin-bottom:0.8rem;
+    }
+    .usdt-wallet-addr {
+      font-size:0.75rem; color:var(--gold); word-break:break-all;
+      background:rgba(0,0,0,0.3); padding:0.7rem; border-radius:10px;
+      cursor:pointer; transition:background 0.2s; font-family:monospace; letter-spacing:0.5px;
+    }
+    .usdt-wallet-addr:hover { background:rgba(212,168,67,0.1); }
+    .usdt-copy-hint { font-size:0.72rem; color:var(--text-muted); margin-top:0.5rem; }
+    .usdt-amount-box {
+      background:rgba(212,168,67,0.05); border:1px solid var(--border);
+      border-radius:10px; padding:0.8rem; text-align:center; margin-bottom:1.5rem;
+    }
+    .usdt-amount-label { font-size:0.75rem; color:var(--text-muted); margin-bottom:0.3rem; }
+    .usdt-amount-val { font-size:1.6rem; font-weight:900; color:var(--gold); }
+    .usdt-amount-note { font-size:0.72rem; color:var(--text-muted); margin-top:0.2rem; }
+    .usdt-form-section { display:flex; flex-direction:column; gap:0.9rem; }
+    .usdt-form-label { font-size:0.8rem; color:var(--text-muted); margin-bottom:0.3rem; display:block; }
+    .usdt-form-input {
+      width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border);
+      border-radius:10px; padding:0.75rem 1rem; color:var(--text);
+      font-family:'Tajawal',sans-serif; font-size:0.95rem; outline:none; transition:border 0.2s;
+    }
+    .usdt-form-input:focus { border-color:rgba(38,161,123,0.5); }
+    .usdt-form-input::placeholder { color:var(--text-muted); }
+    .usdt-upload-box {
+      border:2px dashed rgba(38,161,123,0.3); border-radius:12px; padding:1.5rem;
+      text-align:center; cursor:pointer; transition:all 0.2s; position:relative;
+    }
+    .usdt-upload-box:hover { border-color:rgba(38,161,123,0.6); background:rgba(38,161,123,0.04); }
+    .usdt-upload-box input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .usdt-upload-icon { font-size:2rem; margin-bottom:0.4rem; }
+    .usdt-upload-text { font-size:0.85rem; color:var(--text-muted); }
+    .usdt-upload-preview { display:none; margin-top:0.8rem; }
+    .usdt-upload-preview img { max-width:100%; border-radius:8px; max-height:150px; object-fit:cover; }
+    .usdt-submit-btn {
+      width:100%; background:linear-gradient(135deg,#26A17B,#1a7a5c);
+      color:#fff; font-family:'Tajawal',sans-serif; font-size:1.05rem; font-weight:800;
+      padding:1rem; border-radius:12px; border:none; cursor:pointer; transition:all 0.25s;
+      box-shadow:0 4px 20px rgba(38,161,123,0.3); margin-top:0.5rem;
+    }
+    .usdt-submit-btn:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(38,161,123,0.5); }
+    .usdt-submit-btn:disabled { background:#333; color:#666; cursor:not-allowed; transform:none; box-shadow:none; }
+    .usdt-success {
+      display:none; text-align:center; padding:2rem 1rem;
+    }
+    .usdt-success-icon { font-size:4rem; margin-bottom:1rem; }
+    .usdt-success-title { font-size:1.3rem; font-weight:800; color:#26A17B; margin-bottom:0.5rem; }
+    .usdt-success-text { font-size:0.9rem; color:var(--text-muted); line-height:1.7; }
+    .usdt-copied-toast {
+      position:fixed; bottom:2rem; left:50%; transform:translateX(-50%);
+      background:#26A17B; color:#fff; padding:0.6rem 1.5rem; border-radius:50px;
+      font-size:0.9rem; font-weight:700; font-family:'Tajawal',sans-serif;
+      opacity:0; transition:opacity 0.3s; z-index:9999; pointer-events:none;
+    }
+    .usdt-copied-toast.show { opacity:1; }
+
+    /* HERO */
+    .hero {
+      position:relative; min-height:100vh; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; text-align:center; padding:2rem 1.5rem; overflow:hidden;
+    }
+    .hero-glow {
+      position:absolute; top:-200px; left:50%; transform:translateX(-50%);
+      width:700px; height:700px;
+      background:radial-gradient(circle,rgba(212,168,67,0.18) 0%,transparent 70%); pointer-events:none;
+    }
+    .hero-glow2 {
+      position:absolute; bottom:-100px; right:-150px; width:500px; height:500px;
+      background:radial-gradient(circle,rgba(212,168,67,0.08) 0%,transparent 70%); pointer-events:none;
+    }
+    .hero h1 {
+      font-size:clamp(4rem,15vw,9rem); font-weight:900; line-height:0.9; letter-spacing:-2px;
+      background:linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 40%,var(--gold-dark) 80%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+      animation:fadeDown 0.7s 0.1s ease both;
+    }
+    .hero-sub {
+      font-size:clamp(1rem,3vw,1.3rem); color:var(--text-muted); margin-top:1.2rem;
+      animation:fadeDown 0.7s 0.2s ease both; max-width:500px;
+    }
+    .hero-divider {
+      width:80px; height:2px;
+      background:linear-gradient(to right,transparent,var(--gold),transparent);
+      margin:2rem auto; animation:fadeDown 0.7s 0.3s ease both;
+    }
+    .hero-cta {
+      display:inline-flex; align-items:center; gap:0.6rem;
+      background:linear-gradient(135deg,var(--gold) 0%,var(--gold-dark) 100%);
+      color:#000; font-family:'Tajawal',sans-serif; font-size:1.05rem; font-weight:700;
+      padding:0.9rem 2.2rem; border-radius:50px; border:none; cursor:pointer; text-decoration:none;
+      transition:all 0.25s; animation:fadeDown 0.7s 0.4s ease both;
+      box-shadow:0 0 30px rgba(212,168,67,0.3);
+    }
+    .hero-cta:hover { transform:translateY(-2px); box-shadow:0 0 50px rgba(212,168,67,0.5); }
+
+    /* STATS */
+    .stats-bar {
+      border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+      padding:1.5rem; display:flex; justify-content:center; gap:3rem; flex-wrap:wrap;
+      background:linear-gradient(to right,transparent,rgba(212,168,67,0.04),transparent);
+    }
+    .stat-item { text-align:center; }
+    .stat-num { font-size:1.6rem; font-weight:900; color:var(--gold); }
+    .stat-label { font-size:0.8rem; color:var(--text-muted); margin-top:0.2rem; }
+
+    /* PACKAGES */
+    .packages-section { position:relative; padding:6rem 1.5rem; max-width:1100px; margin:0 auto; }
+    .section-header { text-align:center; margin-bottom:3.5rem; }
+    .section-tag { font-size:0.8rem; color:var(--gold); letter-spacing:3px; text-transform:uppercase; margin-bottom:0.8rem; }
+    .section-title { font-size:clamp(1.8rem,5vw,2.8rem); font-weight:800; color:var(--text); }
+    .section-title span { color:var(--gold); }
+    .packages-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1.2rem; }
+    .package-card {
+      position:relative; background:var(--bg-card); border:1px solid var(--border);
+      border-radius:20px; padding:2rem 1.5rem; text-align:center; transition:all 0.3s; overflow:hidden;
+    }
+    .package-card::before {
+      content:''; position:absolute; inset:0;
+      background:radial-gradient(circle at 50% 0%,rgba(212,168,67,0.08) 0%,transparent 60%);
+      opacity:0; transition:opacity 0.3s; pointer-events:none;
+    }
+    .package-card:hover::before { opacity:1; }
+    .package-card:hover { border-color:rgba(212,168,67,0.5); transform:translateY(-4px); box-shadow:0 20px 40px rgba(0,0,0,0.4),0 0 30px rgba(212,168,67,0.1); }
+    .package-card.popular { border-color:var(--gold); background:linear-gradient(160deg,#1a1400 0%,var(--bg-card) 60%); animation:pulse-glow 3s ease-in-out infinite; }
+    .popular-badge {
+      position:absolute; top:-1px; left:50%; transform:translateX(-50%);
+      background:linear-gradient(90deg,var(--gold-dark),var(--gold)); color:#000;
+      font-size:0.7rem; font-weight:800; padding:0.25rem 1.2rem; border-radius:0 0 10px 10px; white-space:nowrap;
+    }
+    .coin-icon { font-size:2.5rem; margin-bottom:0.8rem; filter:drop-shadow(0 0 8px rgba(212,168,67,0.4)); }
+    .coin-amount { font-size:2.2rem; font-weight:900; color:var(--gold-light); line-height:1; }
+    .coin-label { font-size:0.85rem; color:var(--text-muted); margin-top:0.3rem; margin-bottom:1.5rem; }
+    .price-box { background:rgba(212,168,67,0.07); border:1px solid var(--border); border-radius:12px; padding:1rem; margin-bottom:1.2rem; }
+    .price-main { font-size:2rem; font-weight:900; color:var(--text); }
+    .price-currency { font-size:1rem; color:var(--gold); font-weight:700; }
+    .price-per { font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem; }
+    .buy-btn {
+      display:block; width:100%;
+      background:linear-gradient(135deg,var(--gold) 0%,var(--gold-dark) 100%);
+      color:#000; font-family:'Tajawal',sans-serif; font-size:1rem; font-weight:800;
+      padding:0.85rem; border-radius:12px; border:none; cursor:pointer; text-decoration:none;
+      transition:all 0.25s; box-shadow:0 4px 15px rgba(212,168,67,0.25);
+    }
+    .buy-btn:hover { transform:scale(1.02); box-shadow:0 8px 25px rgba(212,168,67,0.4); }
+    .package-card:not(.popular) .buy-btn { background:transparent; color:var(--gold); border:1px solid var(--gold); }
+    .package-card:not(.popular) .buy-btn:hover { background:rgba(212,168,67,0.1); }
+    .buy-btn.added { background:rgba(37,211,102,0.15) !important; color:#25D366 !important; border:1px solid #25D366 !important; box-shadow:none !important; }
+
+    /* HOW IT WORKS */
+    .how-section { padding:5rem 1.5rem; background:linear-gradient(to bottom,transparent,rgba(212,168,67,0.03),transparent); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+    .steps-grid { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; max-width:900px; margin:0 auto; }
+    .step-card { flex:1; min-width:180px; max-width:200px; text-align:center; padding:1.5rem 1rem; }
+    .step-num { width:60px; height:60px; border-radius:50%; border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:1.4rem; margin:0 auto 1rem; background:rgba(212,168,67,0.07); }
+    .step-title { font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.4rem; }
+    .step-desc { font-size:0.8rem; color:var(--text-muted); line-height:1.6; }
+
+    /* PAYMENT */
+    .payment-section { padding:5rem 1.5rem; max-width:700px; margin:0 auto; }
+    .payment-card { background:var(--bg-card); border:1px solid var(--border); border-radius:24px; padding:2.5rem 2rem; text-align:center; }
+    .payment-icon { font-size:3rem; margin-bottom:1rem; }
+    .payment-title { font-size:1.5rem; font-weight:800; color:var(--text); margin-bottom:0.5rem; }
+    .payment-desc { font-size:0.9rem; color:var(--text-muted); line-height:1.7; margin-bottom:2rem; }
+    .payment-steps { display:flex; flex-direction:column; gap:0.8rem; margin-bottom:2rem; text-align:right; }
+    .pay-step { display:flex; align-items:center; gap:1rem; background:rgba(212,168,67,0.05); border:1px solid var(--border); border-radius:12px; padding:0.8rem 1rem; }
+    .pay-step-num { min-width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:#000; font-size:0.75rem; font-weight:900; display:flex; align-items:center; justify-content:center; }
+    .pay-step-text { font-size:0.9rem; color:var(--text); }
+    .whatsapp-btn { display:inline-flex; align-items:center; gap:0.7rem; background:#25D366; color:#fff; font-family:'Tajawal',sans-serif; font-size:1.1rem; font-weight:700; padding:1rem 2.5rem; border-radius:50px; text-decoration:none; transition:all 0.25s; box-shadow:0 8px 25px rgba(37,211,102,0.3); }
+    .whatsapp-btn:hover { transform:translateY(-2px); box-shadow:0 12px 35px rgba(37,211,102,0.45); }
+
+    /* FOOTER */
+    footer { text-align:center; padding:2rem; border-top:1px solid var(--border); color:var(--text-muted); font-size:0.8rem; }
+    footer .footer-logo { font-size:1.5rem; font-weight:900; color:var(--gold); margin-bottom:0.5rem; }
+
+    /* ANIMATIONS */
+    .reveal { opacity:0; transform:translateY(30px); transition:opacity 0.7s ease,transform 0.7s ease; }
+    .reveal.visible { opacity:1; transform:translateY(0); }
+    @keyframes fadeDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse-glow { 0%,100%{box-shadow:0 0 20px rgba(212,168,67,0.3)} 50%{box-shadow:0 0 40px rgba(212,168,67,0.6)} }
+
+    @media (max-width:600px) { .stats-bar{gap:1.5rem} .packages-grid{grid-template-columns:1fr 1fr} .payment-card{padding:1.5rem 1.2rem} }
+    @media (max-width:400px) { .packages-grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+
+<!-- CART FAB -->
+<button class="cart-fab" onclick="toggleCart()">
+  🛒 السلة <span class="cart-count" id="cartCount">0</span>
+</button>
+
+<!-- CART OVERLAY -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
+<!-- CART DRAWER -->
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-header">
+    <div class="cart-title">🛒 سلة الشراء</div>
+    <button class="cart-close" onclick="toggleCart()">✕ إغلاق</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty">
+      <div class="cart-empty-icon">🛒</div>
+      <p>السلة فارغة<br>اختر باقة لإضافتها</p>
+    </div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total">
+      <span class="cart-total-label">الإجمالي:</span>
+      <span class="cart-total-price" id="cartTotal">0 ﷼</span>
+    </div>
+    <button class="cart-usdt disabled" id="cartUsdtBtn" onclick="openUsdtModal()">
+      <span style="font-size:1.1rem">₮</span> ادفع بـ USDT
+    </button>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <h1>جاك</h1>
+  <p class="hero-sub">احصل على عملاتك الآن بأسعار حصرية وتوصيل فوري</p>
+  <div class="hero-divider"></div>
+  <a href="#packages" class="hero-cta">🪙 تصفح الباقات</a>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-num">+500</div><div class="stat-label">عميل راضٍ</div></div>
+  <div class="stat-item"><div class="stat-num">فوري</div><div class="stat-label">وقت التسليم</div></div>
+  <div class="stat-item"><div class="stat-num">24/7</div><div class="stat-label">دعم متواصل</div></div>
+  <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">آمن وموثوق</div></div>
+</div>
+
+<!-- PACKAGES -->
+<section class="packages-section" id="packages">
+  <div class="section-header reveal">
+    <div class="section-tag">الباقات المتاحة</div>
+    <h2 class="section-title">اختر <span>باقتك</span> المفضلة</h2>
+  </div>
+  <div class="packages-grid">
+
+    <div class="package-card reveal">
+      <div class="coin-icon">🪙</div>
+      <div class="coin-amount">10,000</div>
+      <div class="coin-label">عملة جاكو</div>
+      <div class="price-box">
+        <div class="price-main"><span class="price-currency">﷼</span> 150</div>
+        <div class="price-per">= 0.015 ﷼ لكل عملة</div>
+      </div>
+      <button class="buy-btn" onclick="addToCart(this,'10,000 عملة جاكو',150)">أضف للسلة 🛒</button>
+    </div>
+
+    <div class="package-card reveal">
+      <div class="coin-icon">🪙</div>
+      <div class="coin-amount">20,000</div>
+      <div class="coin-label">عملة جاكو</div>
+      <div class="price-box">
+        <div class="price-main"><span class="price-currency">﷼</span> 300</div>
+        <div class="price-per">= 0.015 ﷼ لكل عملة</div>
+      </div>
+      <button class="buy-btn" onclick="addToCart(this,'20,000 عملة جاكو',300)">أضف للسلة 🛒</button>
+    </div>
+
+    <div class="package-card popular reveal">
+      <div class="popular-badge">⭐ الأكثر مبيعاً</div>
+      <div class="coin-icon">💰</div>
+      <div class="coin-amount">50,000</div>
+      <div class="coin-label">عملة جاكو</div>
+      <div class="price-box">
+        <div class="price-main"><span class="price-currency">﷼</span> 600</div>
+        <div class="price-per">= 0.012 ﷼ لكل عملة</div>
+      </div>
+      <button class="buy-btn" onclick="addToCart(this,'50,000 عملة جاكو',600)">أضف للسلة 🛒</button>
+    </div>
+
+    <div class="package-card reveal">
+      <div class="coin-icon">💎</div>
+      <div class="coin-amount">100,000</div>
+      <div class="coin-label">عملة جاكو</div>
+      <div class="price-box">
+        <div class="price-main"><span class="price-currency">﷼</span> 1,200</div>
+        <div class="price-per">= 0.012 ﷼ لكل عملة</div>
+      </div>
+      <button class="buy-btn" onclick="addToCart(this,'100,000 عملة جاكو',1200)">أضف للسلة 🛒</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <div class="section-header reveal">
+    <div class="section-tag">الخطوات</div>
+    <h2 class="section-title">كيف <span>يعمل</span>؟</h2>
+  </div>
+  <div class="steps-grid">
+    <div class="step-card reveal"><div class="step-num">🛒</div><div class="step-title">اختر الباقة</div><div class="step-desc">اختر الكمية التي تريدها وأضفها للسلة</div></div>
+    <div class="step-card reveal"><div class="step-num">₮</div><div class="step-title">ادفع بـ USDT</div><div class="step-desc">حوّل المبلغ لمحفظتنا على شبكة TRC20</div></div>
+    <div class="step-card reveal"><div class="step-num">📸</div><div class="step-title">ارفع الإيصال</div><div class="step-desc">أدخل بياناتك وارفع صورة إثبات الدفع</div></div>
+    <div class="step-card reveal"><div class="step-num">🪙</div><div class="step-title">استلم عملاتك</div><div class="step-desc">يتم إرسال العملات خلال ٣٠ دقيقة من التأكيد</div></div>
+  </div>
+</section>
+
+<!-- PAYMENT -->
+<section class="payment-section" id="payment">
+  <div class="payment-card reveal">
+    <div class="payment-icon">₮</div>
+    <h2 class="payment-title">الدفع بـ USDT</h2>
+    <p class="payment-desc">ادفع بعملة USDT على شبكة TRC20 — آمن، سريع، وبدون تواصل مسبق</p>
+    <div class="payment-steps">
+      <div class="pay-step"><div class="pay-step-num">١</div><div class="pay-step-text">أضف الباقة للسلة واضغط "ادفع بـ USDT"</div></div>
+      <div class="pay-step"><div class="pay-step-num">٢</div><div class="pay-step-text">انسخ عنوان المحفظة وحوّل المبلغ بالـ USDT</div></div>
+      <div class="pay-step"><div class="pay-step-num">٣</div><div class="pay-step-text">أدخل اسمك وإيدي جاكو ورفع صورة الإيصال</div></div>
+      <div class="pay-step"><div class="pay-step-num">٤</div><div class="pay-step-text">نراجع الطلب ونرسل العملات خلال ٣٠ دقيقة ✓</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.5rem;justify-content:center;margin-top:0.5rem;padding:0.6rem 1.2rem;background:rgba(38,161,123,0.08);border-radius:10px;border:1px solid rgba(38,161,123,0.2);">
+      <span style="color:#26A17B;font-size:0.85rem;">✓</span>
+      <span style="font-size:0.82rem;color:var(--text-muted);">نقبل USDT على شبكة <strong style="color:#26A17B">TRC20 (Tron)</strong> فقط</span>
+    </div>
+  </div>
+</section>
+
+<!-- USDT PAYMENT MODAL -->
+<div class="usdt-modal-overlay" id="usdtModalOverlay" onclick="handleModalOverlayClick(event)">
+  <div class="usdt-modal" id="usdtModal">
+    <button class="usdt-modal-close" onclick="closeUsdtModal()">✕ إغلاق</button>
+
+    <!-- FORM VIEW -->
+    <div id="usdtFormView">
+      <div class="usdt-modal-title">₮ إتمام الدفع بـ USDT</div>
+      <div class="usdt-modal-sub">أرسل المبلغ للمحفظة أدناه ثم أرفع إثبات الدفع</div>
+
+      <!-- Order Summary -->
+      <div class="usdt-order-summary" id="usdtOrderSummary"></div>
+
+      <!-- Network Selector -->
+      <div style="margin-bottom:0.5rem;font-size:0.8rem;color:var(--text-muted);">اختر شبكة الدفع</div>
+      <div class="network-selector">
+        <button class="network-btn active-trc" id="btnTRC20" onclick="selectNetwork('TRC20')">
+          <span class="net-name">🟢 TRC20</span>
+          <span class="net-fee">رسوم منخفضة جداً ✓</span>
+        </button>
+        <button class="network-btn" id="btnBEP20" onclick="selectNetwork('BEP20')">
+          <span class="net-name">🟡 BEP20</span>
+          <span class="net-fee">رسوم منخفضة</span>
+        </button>
+      </div>
+
+      <!-- Wallet -->
+      <div class="usdt-wallet-box">
+        <div class="usdt-wallet-label">عنوان المحفظة</div>
+        <div class="usdt-wallet-network" id="walletNetworkLabel">🟢 TRC20 — Tron Network</div>
+        <div class="usdt-wallet-addr" onclick="copyWallet()" id="walletAddr">TYcN3LQmFrVvRudaH42nyFvWjpzkfVLV4i</div>
+        <div class="usdt-copy-hint">اضغط على العنوان لنسخه 📋</div>
+      </div>
+
+      <!-- Amount in USDT -->
+      <div class="usdt-amount-box">
+        <div class="usdt-amount-label">المبلغ المطلوب تحويله</div>
+        <div class="usdt-amount-val" id="usdtAmountVal">— USDT</div>
+        <div class="usdt-amount-note">السعر تقريبي · سعر صرف الريال = 0.267 دولار</div>
+      </div>
+
+      <!-- Form Fields -->
+      <div class="usdt-form-section">
+        <div>
+          <label class="usdt-form-label">اسمك الكامل *</label>
+          <input class="usdt-form-input" id="usdtName" type="text" placeholder="مثال: محمد العمري" />
+        </div>
+        <div>
+          <label class="usdt-form-label">إيدي حسابك في جاكو *</label>
+          <input class="usdt-form-input" id="usdtJackoId" type="text" placeholder="مثال: jacko_12345" />
+        </div>
+        <div>
+          <label class="usdt-form-label">رقم التحويل (Transaction Hash) — اختياري</label>
+          <input class="usdt-form-input" id="usdtTxHash" type="text" placeholder="0x..." />
+        </div>
+        <div>
+          <label class="usdt-form-label">إثبات الدفع (صورة الإيصال) *</label>
+          <div class="usdt-upload-box" id="uploadBox">
+            <input type="file" accept="image/*" id="usdtReceiptFile" onchange="handleFileUpload(this)" />
+            <div class="usdt-upload-icon">📸</div>
+            <div class="usdt-upload-text">اضغط لرفع صورة الإيصال<br><span style="font-size:0.75rem">JPG / PNG / WEBP</span></div>
+            <div class="usdt-upload-preview" id="uploadPreview">
+              <img id="uploadPreviewImg" src="" alt="preview" />
+            </div>
+          </div>
+        </div>
+        <button class="usdt-submit-btn" id="usdtSubmitBtn" onclick="submitUsdtOrder()">
+          إرسال طلب الشراء ✓
+        </button>
+        <p style="text-align:center;font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">
+          سيتم مراجعة طلبك وإرسال العملات خلال ٣٠ دقيقة
+        </p>
+      </div>
+    </div>
+
+    <!-- SUCCESS VIEW -->
+    <div class="usdt-success" id="usdtSuccessView">
+      <div class="usdt-success-icon">✅</div>
+      <div class="usdt-success-title">تم إرسال طلبك بنجاح!</div>
+      <div class="usdt-success-text">
+        سيتم مراجعة إثبات دفعك خلال <strong style="color:#26A17B">٣٠ دقيقة</strong><br>
+        وسيتم إرسال العملات مباشرة لحسابك في جاكو.<br><br>
+        شكراً لثقتك بنا 🪙
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COPIED TOAST -->
+<div class="usdt-copied-toast" id="copiedToast">✓ تم نسخ العنوان</div>
+
+<footer>
+  <div class="footer-logo">جاك</div>
+  <p>© 2025 جاك — جميع الحقوق محفوظة</p>
+</footer>
+
+<script>
+  // ===== CONFIG =====
+  const WALLETS = {
+    TRC20: { address: 'TYcN3LQmFrVvRudaH42nyFvWjpzkfVLV4i', label: 'TRC20 — Tron', color: '#26A17B', fee: 'رسوم منخفضة جداً ✓' },
+    BEP20: { address: '0x58a0486de1f5f812c574a9b19b6cda426486d837', label: 'BSC — BEP20', color: '#F0B90B', fee: 'رسوم منخفضة' }
+  };
+  let selectedNetwork = 'TRC20';
+  const SAR_TO_USD = 0.267;
+  // الفورم endpoint - استخدم Formspree أو emailjs
+  const FORMSPREE_URL = 'https://formspree.io/f/xpqyrnlz'; // ← ضع رابط Formspree هنا
+
+  let cart = [];
+
+  function addToCart(btn, name, price) {
+    const existing = cart.findIndex(i => i.name === name);
+    if (existing >= 0) { toggleCart(true); return; }
+    cart.push({ name, price });
+    btn.classList.add('added');
+    btn.textContent = '✓ تمت الإضافة';
+    renderCart();
+    toggleCart(true);
+  }
+
+  function removeFromCart(index) {
+    cart.splice(index, 1);
+    document.querySelectorAll('.buy-btn').forEach(b => {
+      b.classList.remove('added');
+      b.textContent = 'أضف للسلة 🛒';
+    });
+    renderCart();
+  }
+
+  function renderCart() {
+    const container = document.getElementById('cartItems');
+    const countEl = document.getElementById('cartCount');
+    const totalEl = document.getElementById('cartTotal');
+    const usdtBtn = document.getElementById('cartUsdtBtn');
+
+    countEl.textContent = cart.length;
+    countEl.classList.add('bump');
+    setTimeout(() => countEl.classList.remove('bump'), 300);
+
+    if (cart.length === 0) {
+      container.innerHTML = '<div class="cart-empty"><div class="cart-empty-icon">🛒</div><p>السلة فارغة<br>اختر باقة لإضافتها</p></div>';
+      totalEl.textContent = '0 ﷼';
+      usdtBtn.classList.add('disabled');
+      return;
+    }
+
+    const total = cart.reduce((s, i) => s + i.price, 0);
+    totalEl.textContent = total.toLocaleString('ar-SA') + ' ﷼';
+
+    container.innerHTML = cart.map((item, i) => `
+      <div class="cart-item">
+        <div class="cart-item-info">
+          <div class="cart-item-name">🪙 ${item.name}</div>
+          <div class="cart-item-price">${item.price.toLocaleString('ar-SA')} ﷼</div>
+        </div>
+        <button class="cart-item-remove" onclick="removeFromCart(${i})">حذف</button>
+      </div>
+    `).join('');
+
+    usdtBtn.classList.remove('disabled');
+  }
+
+  function toggleCart(forceOpen) {
+    const drawer = document.getElementById('cartDrawer');
+    const overlay = document.getElementById('cartOverlay');
+    const isOpen = drawer.classList.contains('open');
+    if (forceOpen === true || !isOpen) {
+      drawer.classList.add('open'); overlay.classList.add('open');
+    } else {
+      drawer.classList.remove('open'); overlay.classList.remove('open');
+    }
+  }
+
+  // ===== NETWORK SELECTOR =====
+  function selectNetwork(net) {
+    selectedNetwork = net;
+    const w = WALLETS[net];
+    document.getElementById('walletAddr').textContent = w.address;
+    document.getElementById('walletNetworkLabel').textContent =
+      net === 'TRC20' ? '🟢 TRC20 — Tron Network' : '🟡 BSC — BEP20 Network';
+    document.getElementById('walletNetworkLabel').style.background =
+      net === 'TRC20' ? 'rgba(38,161,123,0.15)' : 'rgba(240,185,11,0.15)';
+    document.getElementById('walletNetworkLabel').style.color = w.color;
+
+    const btnTRC = document.getElementById('btnTRC20');
+    const btnBEP = document.getElementById('btnBEP20');
+    btnTRC.className = 'network-btn' + (net === 'TRC20' ? ' active-trc' : '');
+    btnBEP.className = 'network-btn' + (net === 'BEP20' ? ' active-bep' : '');
+  }
+
+  // ===== USDT MODAL =====
+  function openUsdtModal() {
+    if (cart.length === 0) return;
+    const total = cart.reduce((s, i) => s + i.price, 0);
+    const usdtAmount = (total * SAR_TO_USD).toFixed(2);
+
+    // Fill order summary
+    const summary = document.getElementById('usdtOrderSummary');
+    summary.innerHTML = cart.map(i => `
+      <div class="usdt-order-row">
+        <span>🪙 ${i.name}</span>
+        <span>${i.price.toLocaleString('ar-SA')} ﷼</span>
+      </div>
+    `).join('') + `
+      <div class="usdt-order-row">
+        <span>الإجمالي</span>
+        <span>${total.toLocaleString('ar-SA')} ﷼</span>
+      </div>
+    `;
+
+    document.getElementById('usdtAmountVal').textContent = usdtAmount + ' USDT';
+    selectNetwork('TRC20');
+
+    // Reset form
+    document.getElementById('usdtFormView').style.display = '';
+    document.getElementById('usdtSuccessView').style.display = 'none';
+    document.getElementById('usdtName').value = '';
+    document.getElementById('usdtJackoId').value = '';
+    document.getElementById('usdtTxHash').value = '';
+    document.getElementById('uploadPreview').style.display = 'none';
+    document.getElementById('usdtReceiptFile').value = '';
+    document.getElementById('usdtSubmitBtn').disabled = false;
+    document.getElementById('usdtSubmitBtn').textContent = 'إرسال طلب الشراء ✓';
+
+    // Close cart, open modal
+    toggleCart(false);
+    document.getElementById('usdtModalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeUsdtModal() {
+    document.getElementById('usdtModalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function handleModalOverlayClick(e) {
+    if (e.target === document.getElementById('usdtModalOverlay')) closeUsdtModal();
+  }
+
+  function copyWallet() {
+    const addr = document.getElementById('walletAddr').textContent;
+    const toast = document.getElementById('copiedToast');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(addr).then(() => {
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+      });
+    } else {
+      // Fallback for mobile
+      const el = document.createElement('textarea');
+      el.value = addr;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+  }
+
+  function handleFileUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('uploadPreview');
+      const img = document.getElementById('uploadPreviewImg');
+      img.src = e.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function submitUsdtOrder() {
+    const name = document.getElementById('usdtName').value.trim();
+    const jackoId = document.getElementById('usdtJackoId').value.trim();
+    const txHash = document.getElementById('usdtTxHash').value.trim();
+    const fileInput = document.getElementById('usdtReceiptFile');
+    const total = cart.reduce((s, i) => s + i.price, 0);
+    const usdtAmount = (total * SAR_TO_USD).toFixed(2);
+
+    if (!name) { alert('يرجى إدخال اسمك الكامل'); return; }
+    if (!jackoId) { alert('يرجى إدخال إيدي حساب جاكو'); return; }
+    if (!fileInput.files[0]) { alert('يرجى رفع صورة إثبات الدفع'); return; }
+
+    const btn = document.getElementById('usdtSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري الإرسال...';
+
+    try {
+      const items = cart.map(i => `${i.name} (${i.price} ﷼)`).join(' + ');
+      const formData = new FormData();
+      formData.append('الاسم', name);
+      formData.append('إيدي جاكو', jackoId);
+      formData.append('الباقة', items);
+      formData.append('الإجمالي بالريال', total + ' ﷼');
+      formData.append('المبلغ بـ USDT', usdtAmount + ' USDT');
+      formData.append('رقم التحويل', txHash || 'لم يُدخل');
+      formData.append('الشبكة', selectedNetwork + ' — ' + WALLETS[selectedNetwork].address);
+      formData.append('_subject', `طلب شراء جديد - ${jackoId}`);
+      formData.append('إثبات الدفع', fileInput.files[0]);
+
+      const res = await fetch(FORMSPREE_URL, { method: 'POST', body: formData, headers: { 'Accept': 'application/json' } });
+
+      if (res.ok) {
+        document.getElementById('usdtFormView').style.display = 'none';
+        document.getElementById('usdtSuccessView').style.display = 'block';
+        cart = [];
+        renderCart();
+        document.querySelectorAll('.buy-btn').forEach(b => {
+          b.classList.remove('added');
+          b.textContent = 'أضف للسلة 🛒';
+        });
+      } else {
+        throw new Error('فشل الإرسال');
+      }
+    } catch(err) {
+      btn.disabled = false;
+      btn.textContent = 'إرسال طلب الشراء ✓';
+      alert('حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى أو التواصل عبر واتساب.');
+    }
+  }
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const href = a.getAttribute('href');
+      if (href === '#') return;
+      const target = document.querySelector(href);
+      if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+    });
+  });
+</script>
+</body>
+</html>
